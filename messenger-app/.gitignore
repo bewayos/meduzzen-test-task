@@ -1,0 +1,60 @@
+-.DS_Store
+-Thumbs.db
+
+# Editors/IDE
+-.vscode/
+-.idea/
+
+# Environment files
+-.env
+-.env.*
+!/.env.example
+/api/.env
+/api/.env.*
+!/api/.env.example
+/web/.env
+/web/.env.*
+!/web/.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+*.dist-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+
+# Node / Vite (web)
+/web/node_modules/
+/web/dist/
+/web/.vite/
+/web/coverage/
+/web/.turbo/
+/web/.eslintcache
+
+# Logs
+*.log
+logs/
+/api/*.log
+/web/*.log
+
+# Docker
+.docker/
+docker-data/
+
+# Misc
+*.swp
+*.swo
+
