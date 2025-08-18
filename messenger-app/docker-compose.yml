@@ -5,7 +5,8 @@ services:
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app
       POSTGRES_DB: app
-    ports: ["5432:5432"]
+    ports:
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -20,24 +21,33 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports: ["8000:8000"]
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./api:/app
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0 --port 8000
+      --reload
+    expose:
+      - "8000"
 
   web:
     build: ./web
     env_file: [.env]
-    depends_on: [api]
-    ports: ["5173:5173"]
+    depends_on:
+      - api
     volumes:
       - ./web:/usr/src/app
     command: ["npm","run","dev","--","--host"]
+    expose:
+      - "5173"
 
   nginx:
     build: ./nginx
-    depends_on: [web, api]
-    ports: ["80:80"]
+    depends_on:
+      - api
+      - web
+    ports:
+      - "80:80"
 
 volumes:
   pgdata:
