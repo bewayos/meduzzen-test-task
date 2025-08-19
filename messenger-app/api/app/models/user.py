@@ -1,9 +1,10 @@
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, DateTime, func
-from sqlalchemy.ext.declarative import declarative_base
 import uuid
 
-Base = declarative_base()
+from sqlalchemy import DateTime, String, func
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.models.base import Base
+
 
 class User(Base):
     __tablename__ = "users"
