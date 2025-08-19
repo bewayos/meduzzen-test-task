@@ -1,10 +1,11 @@
+import asyncio
 from uuid import UUID
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.deps import get_current_user
-
 router = APIRouter(prefix="/ws", tags=["ws"])
+
+PING_EVERY = 25
 
 
 class WSManager:
@@ -32,6 +33,15 @@ class WSManager:
 manager = WSManager()
 
 
+async def _keepalive(ws: WebSocket):
+    try:
+        while True:
+            await asyncio.sleep(PING_EVERY)
+            await ws.send_json({"type": "ping"})
+    except Exception:
+        pass
+
+
 @router.websocket("")
 async def ws_endpoint(websocket: WebSocket):
     token = websocket.query_params.get("token")
@@ -41,16 +51,13 @@ async def ws_endpoint(websocket: WebSocket):
         return
     conv_id = UUID(conv_id_str)
 
-    websocket.headers.__dict__["_list"].append((b"authorization", f"Bearer {token}".encode()))
-    try:
-        _user = await get_current_user.__wrapped__(authorization=f"Bearer {token}")  # type: ignore
-    except Exception:
-        await websocket.close(code=4401)
-        return
-
     await manager.connect(conv_id, websocket)
+    keep_task = asyncio.create_task(_keepalive(websocket))
     try:
         while True:
             _ = await websocket.receive_text()
     except WebSocketDisconnect:
+        pass
+    finally:
+        keep_task.cancel()
         manager.disconnect(conv_id, websocket)
