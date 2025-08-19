@@ -1,9 +1,12 @@
 from __future__ import annotations
+
 import os
 import sys
 from logging.config import fileConfig
-from alembic import context
+
 from sqlalchemy import engine_from_config, pool
+
+from alembic import context  # type: ignore
 
 # Allow "app.*" imports
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -16,10 +19,13 @@ if config.config_file_name is not None:
 
 # Import settings and models metadata
 from app.core.config import settings  # noqa: E402
-from app.models.user import Base  # noqa: E402  # Base is defined in user.py or shared package
+from app.models.user import (  # noqa: E402  # Base is defined in user.py or shared package
+    Base,
+)
 
 target_metadata = Base.metadata
 config.set_main_option("sqlalchemy.url", settings.db_url)
+
 
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
@@ -31,6 +37,7 @@ def run_migrations_offline() -> None:
     )
     with context.begin_transaction():
         context.run_migrations()
+
 
 def run_migrations_online() -> None:
     connectable = engine_from_config(
@@ -46,6 +53,7 @@ def run_migrations_online() -> None:
         )
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()
