@@ -3,13 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import ws
 from app.core.config import settings
-from app.routers import auth, conversations, messages
-
-app = FastAPI()
-app.include_router(auth.router)
-app.include_router(conversations.router)
-app.include_router(messages.router)
-app.include_router(ws.router)
+from app.routers import auth, conversations, messages, users
 
 app = FastAPI(title="Messenger API")
 
@@ -22,6 +16,10 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(conversations.router)
+app.include_router(messages.router)
+app.include_router(ws.router)
+app.include_router(users.router)
 
 
 @app.get("/healthz")
