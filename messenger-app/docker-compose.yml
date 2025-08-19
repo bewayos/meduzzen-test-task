@@ -24,6 +24,9 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     volumes:
      - ./api:/app
+     - uploads:/data/uploads
+    environment:
+      - UPLOAD_ROOT=/data/uploads
 
   web:
     build:
@@ -39,6 +42,9 @@ services:
     depends_on:
       - api
       - db
+    volumes:
+      - uploads:/data/uploads
 
 volumes:
   pgdata:
+  uploads:

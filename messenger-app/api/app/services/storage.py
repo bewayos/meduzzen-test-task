@@ -1,43 +1,37 @@
+import os
+from collections.abc import Iterable
 from pathlib import Path
 from uuid import UUID
 
 from fastapi import HTTPException, UploadFile
 
-UPLOAD_ROOT = Path("uploads")
-MAX_BYTES = 10 * 1024 * 1024  # 10 MB
+UPLOAD_ROOT = Path(os.getenv("UPLOAD_ROOT", "/data/uploads"))
+
+WHITELIST = {"image/", "application/pdf", "text/plain", "application/zip"}
+MAX_BYTES = 10 * 1024 * 1024  # 10MB
 
 
-async def save_uploads(
-    message_id: UUID, files: list[UploadFile]
-) -> list[tuple[str, UploadFile, int]]:
-    """
-    Save uploaded files to disk under /uploads/{message_id}/
-    Returns list of (storage_key, original UploadFile, size_bytes).
-    """
+def validate_files(files: Iterable[UploadFile]) -> None:
+    # Basic MIME/size checks (streamed size estimation is limited; we trust client or rely on nginx limit)
+    for f in files:
+        mt = (f.content_type or "").lower()
+        if not any(mt.startswith(p) for p in WHITELIST):
+            raise HTTPException(status_code=400, detail=f"Unsupported MIME: {mt}")
+
+
+async def save_uploads(message_id: UUID, files: list[UploadFile]):
+    # Persist files under /data/uploads/<message_id>/<original_name>
     saved: list[tuple[str, UploadFile, int]] = []
     base = UPLOAD_ROOT / str(message_id)
     base.mkdir(parents=True, exist_ok=True)
-
     for f in files:
+        dest = base / (f.filename or "file.bin")
+        # Note: for large files you'd stream chunks; MVP reads whole content
         content = await f.read()
         size = len(content)
         if size > MAX_BYTES:
             raise HTTPException(status_code=400, detail=f"File too large: {f.filename}")
-
-        fname = f.filename or "file.bin"
-        dest = base / fname
-
         with open(dest, "wb") as out:
             out.write(content)
-
-        storage_key = f"/uploads/{message_id}/{fname}"
-        saved.append((storage_key, f, size))
-
+        saved.append((f"/uploads/{message_id}/{dest.name}", f, size))
     return saved
-
-
-def validate_files(files: list[UploadFile]) -> None:
-    """
-    Placeholder for MIME/extension checks. For MVP just size is validated in save_uploads.
-    """
-    return None
