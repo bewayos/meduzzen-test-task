@@ -62,8 +62,3 @@ messenger-app/
 ├─ Makefile
 └─ README.md
 ```
-docker compose run --rm api alembic upgrade head
-
-docker compose run --rm api alembic revision -m "create conversations/messages/attachments" --autogenerate
-
-docker compose run --rm api alembic upgrade head

@@ -1,4 +1,4 @@
-# Build stage: фронтенд
+# Build stage: frontend
 FROM node:20-bullseye-slim AS web-build
 WORKDIR /web
 COPY web/package*.json ./

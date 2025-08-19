@@ -12,7 +12,6 @@ MAX_BYTES = 10 * 1024 * 1024  # 10MB
 
 
 def validate_files(files: Iterable[UploadFile]) -> None:
-    # Basic MIME/size checks (streamed size estimation is limited; we trust client or rely on nginx limit)
     for f in files:
         mt = (f.content_type or "").lower()
         if not any(mt.startswith(p) for p in WHITELIST):
@@ -20,13 +19,11 @@ def validate_files(files: Iterable[UploadFile]) -> None:
 
 
 async def save_uploads(message_id: UUID, files: list[UploadFile]):
-    # Persist files under /data/uploads/<message_id>/<original_name>
     saved: list[tuple[str, UploadFile, int]] = []
     base = UPLOAD_ROOT / str(message_id)
     base.mkdir(parents=True, exist_ok=True)
     for f in files:
         dest = base / (f.filename or "file.bin")
-        # Note: for large files you'd stream chunks; MVP reads whole content
         content = await f.read()
         size = len(content)
         if size > MAX_BYTES:
