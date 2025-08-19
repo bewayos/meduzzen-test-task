@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
 from app.routers import auth
 
@@ -14,6 +15,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+
 
 @app.get("/healthz")
 def health() -> dict[str, str]:
