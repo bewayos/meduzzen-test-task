@@ -5,12 +5,10 @@ services:
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app
       POSTGRES_DB: app
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL","pg_isready -U app -d app"]
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -21,33 +19,33 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./api:/app
-    command: >
-      uvicorn app.main:app
-      --host 0.0.0.0 --port 8000
-      --reload
-    expose:
-      - "8000"
+    # Можна прибрати публікацію порту у суворому проді і ходити тільки через nginx.
+    # Для дебагу залишаємо:
+    ports:
+      - "8000:8000"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    # В проді краще не монтувати код з хоста
+    # volumes:
+    #   - ./api:/app
 
+  # Опційно лишаємо окремий web-сервіс для дев-режиму (vite dev server).
+  # У прод-збірці він не використовується — nginx сам збирає фронт multi-stage'м.
   web:
-    build: ./web
-    env_file: [.env]
-    depends_on:
-      - api
-    volumes:
-      - ./web:/usr/src/app
-    command: ["npm","run","dev","--","--host"]
-    expose:
-      - "5173"
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    # без портів: це не прод-сервер, а лише окремий образ/сервіс для dev
 
   nginx:
-    build: ./nginx
-    depends_on:
-      - api
-      - web
+    # ВАЖЛИВО: контекст — КОРІНЬ репо, бо Dockerfile збирає фронт з ./web/
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
     ports:
       - "80:80"
+    depends_on:
+      - api
+      - db
 
 volumes:
   pgdata:
