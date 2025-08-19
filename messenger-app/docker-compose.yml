@@ -19,25 +19,18 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    # Можна прибрати публікацію порту у суворому проді і ходити тільки через nginx.
-    # Для дебагу залишаємо:
     ports:
       - "8000:8000"
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-    # В проді краще не монтувати код з хоста
-    # volumes:
-    #   - ./api:/app
+    volumes:
+      - ./api:/app
 
-  # Опційно лишаємо окремий web-сервіс для дев-режиму (vite dev server).
-  # У прод-збірці він не використовується — nginx сам збирає фронт multi-stage'м.
   web:
     build:
       context: ./web
       dockerfile: Dockerfile
-    # без портів: це не прод-сервер, а лише окремий образ/сервіс для dev
 
   nginx:
-    # ВАЖЛИВО: контекст — КОРІНЬ репо, бо Dockerfile збирає фронт з ./web/
     build:
       context: .
       dockerfile: nginx/Dockerfile
