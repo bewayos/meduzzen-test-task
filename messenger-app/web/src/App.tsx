@@ -1,35 +1,70 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "./store/auth";
 
-function App() {
-  const [count, setCount] = useState(0)
+function Header() {
+  const { pathname } = useLocation();
+  const token = useAuth((s) => s.token);
+  const logout = useAuth((s) => s.logout);
+  const nav = useNavigate();
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <header className="border-b bg-white">
+      <div className="max-w-5xl mx-auto p-3 flex items-center justify-between">
+        <Link to="/" className="font-semibold">Messenger</Link>
+        <nav className="flex items-center gap-4">
+          {token ? (
+            <>
+              <Link
+                to="/chats"
+                className={pathname.startsWith("/chats") ? "underline" : ""}
+              >
+                Chats
+              </Link>
+              <Link
+                to="/profile"
+                className={pathname.startsWith("/profile") ? "underline" : ""}
+              >
+                Profile
+              </Link>
+              <button
+                className="text-red-600"
+                onClick={() => {
+                  logout();
+                  nav("/auth/login");
+                }}
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/auth/login"
+                className={pathname.startsWith("/auth/login") ? "underline" : ""}
+              >
+                Login
+              </Link>
+              <Link
+                to="/auth/register"
+                className={pathname.startsWith("/auth/register") ? "underline" : ""}
+              >
+                Register
+              </Link>
+            </>
+          )}
+        </nav>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </header>
+  );
 }
 
-export default App
+export default function App() {
+  return (
+    <div className="min-h-dvh flex flex-col">
+      <Header />
+      <main className="flex-1">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
