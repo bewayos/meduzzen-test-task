@@ -20,6 +20,7 @@ from app.deps import get_current_user
 from app.models import Attachment, Conversation, Message, User
 from app.schemas.message import MessageCreateOut, MessageOut
 from app.services.storage import save_uploads, validate_files
+from app.ws import manager
 
 router = APIRouter(prefix="/conversations/{conversation_id}/messages", tags=["messages"])
 
@@ -83,4 +84,9 @@ async def create_message(
             db.add(att)
 
     db.commit()
+    background.add_task(
+        manager.broadcast_json,
+        conversation_id,
+        {"type": "message:new", "message_id": str(msg.id)},
+    )
     return MessageCreateOut(id=msg.id)
