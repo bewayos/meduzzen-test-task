@@ -7,7 +7,7 @@ app = FastAPI(title="Messenger API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.cors_origins],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -17,5 +17,4 @@ app.include_router(auth.router)
 
 @app.get("/healthz")
 def health() -> dict[str, str]:
-    # Simple healthcheck endpoint
     return {"status": "ok"}

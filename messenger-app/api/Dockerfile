@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir \
     fastapi \
     "uvicorn[standard]" \
-    "pydantic>=2" \
+    "pydantic[email]>=2" \
     "sqlalchemy>=2" \
     "psycopg[binary]>=3.1" \
     alembic \
@@ -23,4 +23,5 @@ COPY app ./app
 COPY alembic.ini ./alembic.ini
 COPY alembic ./alembic
 
-# Default command is set in docker-compose (reload etc.)
+# Default command to run the API
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]
