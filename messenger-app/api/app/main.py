@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app import ws
 from app.core.config import settings
 from app.routers import auth, conversations, messages, users
+from app.services.storage import UPLOAD_ROOT
 
 app = FastAPI(title="Messenger API")
 
@@ -21,6 +23,8 @@ app.include_router(messages.router)
 app.include_router(messages.msg_router)
 app.include_router(ws.router)
 app.include_router(users.router)
+
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_ROOT)), name="uploads")
 
 
 @app.get("/healthz")

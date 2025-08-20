@@ -34,9 +34,7 @@ export async function sendMessage(conversationId: string, opts: { content?: stri
   const form = new FormData();
   if (opts.content) form.append("content", opts.content);
   (opts.files || []).forEach((f) => form.append("files", f));
-  const res = await api.post<{ id: string }>(`/conversations/${conversationId}/messages`, form, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  const res = await api.post<{ id: string }>(`/conversations/${conversationId}/messages`, form);
   return res.data;
 }
 

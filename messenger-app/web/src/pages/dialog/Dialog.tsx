@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { useAuth } from "../../store/auth";
 import { useRef, useState, useMemo } from "react";
 import { getMessages, sendMessage, updateMessage, deleteMessage } from "../../api/messages";
+import AttachmentItem from "../../components/AttachmentItem";
 import type { Message } from "../../api/messages";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useConversationWS } from "../../hooks/useConversationWS";
@@ -112,6 +113,18 @@ export default function Dialog() {
               ) : (
                 <div className="whitespace-pre-wrap">
                   {m.content || <span className="italic text-gray-400">[attachments only]</span>}
+                  {!!m.attachments?.length && (
+                    <ul className="mt-2 space-y-2">
+                      {m.attachments.map((att) => (
+                        <li key={att.id}>
+                          {/* Reuse the dedicated attachment component for previews and downloads */}
+                          {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
+                          {/* @ts-ignore - local component path */}
+                          <AttachmentItem att={att} />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               )}
               {!m.deleted_at && m.sender_id === userId && (

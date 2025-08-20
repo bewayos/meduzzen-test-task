@@ -1,6 +1,7 @@
 import { useState } from "react";
 import apiClient from "../api/client";
 import type { Message } from "../types";
+import AttachmentItem from "./AttachmentItem";
 
 type Props = {
   message: Message;
@@ -12,6 +13,9 @@ export function MessageItem({ message, currentUsername }: Props) {
   const [editContent, setEditContent] = useState(message.content || "");
 
   const canModify = message.sender.username === currentUsername;
+  const onlyAttachments =
+    (!message.content || message.content.trim() === "") &&
+    (message.attachments?.length ?? 0) > 0;
 
   async function handleSave() {
     await apiClient.patch(
@@ -29,7 +33,7 @@ export function MessageItem({ message, currentUsername }: Props) {
 
   return (
     <div className="p-2 rounded-lg hover:bg-gray-50 relative">
-      {/* username + час */}
+      {/* sender + time */}
       <div className="text-xs text-gray-600 mb-1">
         {message.sender.username} •{" "}
         {new Date(message.created_at).toLocaleTimeString([], {
@@ -57,29 +61,23 @@ export function MessageItem({ message, currentUsername }: Props) {
         </div>
       ) : (
         <p className={message.deleted_at ? "italic text-gray-400" : ""}>
-          {message.deleted_at ? "Message deleted" : message.content}
+          {message.deleted_at
+            ? "Message deleted"
+            : onlyAttachments
+            ? "[attachments only]"
+            : message.content}
           {message.edited_at && !message.deleted_at && (
             <span className="ml-1 text-xs text-gray-400">(edited)</span>
           )}
         </p>
       )}
 
-      {/* attachments list */}
       {!!message.attachments?.length && (
-        <ul className="mt-1 space-y-1">
+        <div className="mt-2 flex flex-col gap-2">
           {message.attachments.map((att) => (
-            <li key={att.id}>
-              <a
-                href={att.storage_key}
-                target="_blank"
-                rel="noreferrer"
-                className="text-blue-600 underline break-all"
-              >
-                {att.filename}
-              </a>
-            </li>
+            <AttachmentItem key={att.id} att={att} />
           ))}
-        </ul>
+        </div>
       )}
 
       {canModify && !message.deleted_at && (
