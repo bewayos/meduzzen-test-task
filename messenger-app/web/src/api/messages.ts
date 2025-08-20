@@ -1,4 +1,5 @@
 import api from "./client";
+import type { User } from "../types";
 
 export interface Attachment {
   id: string;
@@ -13,6 +14,7 @@ export interface Message {
   id: string;
   conversation_id: string;
   sender_id: string;
+  sender: User;
   content: string | null;
   created_at: string;
   edited_at: string | null;

@@ -13,7 +13,7 @@ from fastapi import (
     status,
 )
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.db import get_db
 from app.deps import get_current_user
@@ -36,9 +36,17 @@ def get_messages(
 ):
     conv = db.get(Conversation, conversation_id)
     if not conv or current_user.id not in (conv.user_a_id, conv.user_b_id):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
+        )
 
-    q = select(Message).where(Message.conversation_id == conversation_id)
+    q = (
+        select(Message)
+        .options(joinedload(Message.sender))
+        .where(Message.conversation_id == conversation_id)
+    )
+
     if cursor:
         try:
             dt = datetime.fromisoformat(cursor)

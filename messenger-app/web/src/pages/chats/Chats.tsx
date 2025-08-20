@@ -2,10 +2,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createOrGetConversation, listConversations } from "../../api/conversations";
 import type { Conversation } from "../../api/conversations";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useAuth } from "../../store/auth";
 
 export default function Chats() {
   const qc = useQueryClient();
+  const token = useAuth((s) => s.token);
   const { data, isLoading, error } = useQuery({
     queryKey: ["conversations"],
     queryFn: listConversations,
@@ -13,6 +15,15 @@ export default function Chats() {
   const [peerId, setPeerId] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  const userId = useMemo(() => {
+    if (!token) return null;
+    try {
+      return JSON.parse(atob(token.split(".")[1])).sub as string;
+    } catch {
+      return null;
+    }
+  }, [token]);
 
   async function onCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -43,15 +54,18 @@ export default function Chats() {
       {isLoading && <div>Loading…</div>}
       {error && <div className="text-red-500 text-sm">Failed to load.</div>}
       <ul className="divide-y">
-        {(data || []).map((c: Conversation) => (
-          <li key={c.id} className="py-3 flex items-center justify-between">
-            <div className="text-sm">
-              <div className="font-medium">{c.id}</div>
-              <div className="text-gray-500">A: {c.user_a_id.slice(0,8)}… · B: {c.user_b_id.slice(0,8)}…</div>
-            </div>
-            <Link className="text-blue-600 underline" to={`/dialog/${c.id}`}>Open</Link>
-          </li>
-        ))}
+        {(data || []).map((c: Conversation) => {
+          const peer = userId && c.user_a?.id === userId ? c.user_b : c.user_a;
+          return (
+            <li key={c.id} className="py-3 flex items-center justify-between">
+              <div className="text-sm">
+                <div className="font-medium">Dialog with {peer?.username || "невідомо"}</div>
+                <div className="text-gray-500">A: {c.user_a?.username} · B: {c.user_b?.username}</div>
+              </div>
+              <Link className="text-blue-600 underline" to={`/dialog/${c.id}`}>Open</Link>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

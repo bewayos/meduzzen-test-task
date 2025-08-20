@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import and_, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.db import get_db
 from app.deps import get_current_user
@@ -16,14 +16,20 @@ def create_or_get_conversation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    stmt = select(Conversation).where(
-        or_(
-            and_(
-                Conversation.user_a_id == current_user.id, Conversation.user_b_id == payload.peer_id
-            ),
-            and_(
-                Conversation.user_a_id == payload.peer_id, Conversation.user_b_id == current_user.id
-            ),
+    stmt = (
+        select(Conversation)
+        .options(joinedload(Conversation.user_a), joinedload(Conversation.user_b))
+        .where(
+            or_(
+                and_(
+                    Conversation.user_a_id == current_user.id,
+                    Conversation.user_b_id == payload.peer_id,
+                ),
+                and_(
+                    Conversation.user_a_id == payload.peer_id,
+                    Conversation.user_b_id == current_user.id,
+                ),
+            )
         )
     )
     conv = db.scalars(stmt).first()
@@ -39,6 +45,12 @@ def create_or_get_conversation(
     db.add(conv)
     db.commit()
     db.refresh(conv)
+    conv = db.scalars(
+        select(Conversation)
+        .options(joinedload(Conversation.user_a), joinedload(Conversation.user_b))
+        .where(Conversation.id == conv.id)
+    ).first()
+    assert conv is not None
     return conv
 
 
@@ -49,6 +61,7 @@ def list_conversations(
 ):
     stmt = (
         select(Conversation)
+        .options(joinedload(Conversation.user_a), joinedload(Conversation.user_b))
         .where(
             (Conversation.user_a_id == current_user.id)
             | (Conversation.user_b_id == current_user.id)

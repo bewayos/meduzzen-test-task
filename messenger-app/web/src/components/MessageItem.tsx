@@ -4,21 +4,14 @@ import type { Message } from "../types";
 
 type Props = {
   message: Message;
-  currentUserId: string;
+  currentUsername: string;
 };
 
-export function MessageItem({ message, currentUserId }: Props) {
+export function MessageItem({ message, currentUsername }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content || "");
 
-  const canModify = message.sender_id === currentUserId;
-
-  console.log("Message debug", {
-    msgId: message.id,
-    sender: message.sender_id,
-    currentUserId,
-    canModify,
-  });
+  const canModify = message.sender.username === currentUsername;
 
   async function handleSave() {
     await apiClient.patch(
@@ -35,7 +28,16 @@ export function MessageItem({ message, currentUserId }: Props) {
   }
 
   return (
-    <div className="p-2 rounded-lg hover:bg-gray-100 relative">
+    <div className="p-2 rounded-lg hover:bg-gray-50 relative">
+      {/* username + час */}
+      <div className="text-xs text-gray-600 mb-1">
+        {message.sender.username} •{" "}
+        {new Date(message.created_at).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+      </div>
+
       {isEditing ? (
         <div className="flex gap-2">
           <textarea
@@ -60,6 +62,24 @@ export function MessageItem({ message, currentUserId }: Props) {
             <span className="ml-1 text-xs text-gray-400">(edited)</span>
           )}
         </p>
+      )}
+
+      {/* attachments list */}
+      {!!message.attachments?.length && (
+        <ul className="mt-1 space-y-1">
+          {message.attachments.map((att) => (
+            <li key={att.id}>
+              <a
+                href={att.storage_key}
+                target="_blank"
+                rel="noreferrer"
+                className="text-blue-600 underline break-all"
+              >
+                {att.filename}
+              </a>
+            </li>
+          ))}
+        </ul>
       )}
 
       {canModify && !message.deleted_at && (

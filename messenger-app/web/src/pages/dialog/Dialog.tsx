@@ -5,6 +5,8 @@ import { getMessages, sendMessage, updateMessage, deleteMessage } from "../../ap
 import type { Message } from "../../api/messages";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useConversationWS } from "../../hooks/useConversationWS";
+import { listConversations } from "../../api/conversations";
+import type { Conversation } from "../../api/conversations";
 
 export default function Dialog() {
   const { id = "" } = useParams();
@@ -29,6 +31,11 @@ export default function Dialog() {
   const [files, setFiles] = useState<File[]>([]);
   const [editing, setEditing] = useState<Message | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const { data: convs } = useQuery({
+    queryKey: ["conversations"],
+    queryFn: listConversations,
+  });
 
   useConversationWS(id, token, (evt) => {
     if (evt?.type === "message:new") {
@@ -73,9 +80,22 @@ export default function Dialog() {
     );
   }
 
+  const peerUsername = useMemo(() => {
+    if (data && userId) {
+      const otherMsg = (data || []).find((m) => m.sender_id !== userId);
+      if (otherMsg?.sender?.username) return otherMsg.sender.username;
+    }
+    const conv = (convs as Conversation[] | undefined)?.find((c) => c.id === id);
+    if (conv && userId) {
+      const peer = conv.user_a?.id === userId ? conv.user_b : conv.user_a;
+      return peer?.username || null;
+    }
+    return null;
+  }, [data, convs, id, userId]);
+
   return (
     <div className="max-w-3xl mx-auto p-4 flex flex-col gap-3">
-      <h1 className="text-xl font-semibold">Dialog: {id}</h1>
+      <h1 className="text-xl font-semibold">Dialog with {peerUsername}</h1>
 
       <div className="flex-1 min-h-[300px] border rounded p-3 overflow-auto bg-gray-50 dark:bg-gray-900">
         {isLoading && <div>Loading…</div>}
@@ -84,7 +104,7 @@ export default function Dialog() {
           {(data || []).slice().reverse().map((m: Message) => (
             <li key={m.id} className="bg-white dark:bg-black/20 rounded p-2">
               <div className="text-xs text-gray-500">
-                from {m.sender_id.slice(0, 8)}… at {new Date(m.created_at).toLocaleString()}
+                from {m.sender?.username || m.sender_id.slice(0, 8) + "…"} at {new Date(m.created_at).toLocaleString()}
                 {m.edited_at && !m.deleted_at && <span className="ml-1 italic">edited</span>}
               </div>
               {m.deleted_at ? (

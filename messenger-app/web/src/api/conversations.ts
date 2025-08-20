@@ -1,9 +1,12 @@
 import api from "./client";
+import type { User } from "../types";
 
 export interface Conversation {
   id: string;
   user_a_id: string;
   user_b_id: string;
+  user_a: User;
+  user_b: User;
   created_at: string;
 }
 

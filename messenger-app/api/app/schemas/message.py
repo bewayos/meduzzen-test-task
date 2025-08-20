@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, field_validator
 
+from app.schemas.user import UserOut
+
 
 class AttachmentOut(BaseModel):
     id: UUID
@@ -20,6 +22,7 @@ class MessageOut(BaseModel):
     id: UUID
     conversation_id: UUID
     sender_id: UUID
+    sender: UserOut
     content: str | None
     created_at: datetime
     edited_at: datetime | None
