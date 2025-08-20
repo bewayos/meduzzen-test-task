@@ -1,5 +1,5 @@
-from datetime import datetime
-from typing import Annotated
+from datetime import UTC, datetime
+from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import (
@@ -18,11 +18,12 @@ from sqlalchemy.orm import Session
 from app.core.db import get_db
 from app.deps import get_current_user
 from app.models import Attachment, Conversation, Message, User
-from app.schemas.message import MessageCreateOut, MessageOut
+from app.schemas.message import MessageCreateOut, MessageOut, MessageUpdate
 from app.services.storage import save_uploads, validate_files
 from app.ws import manager
 
 router = APIRouter(prefix="/conversations/{conversation_id}/messages", tags=["messages"])
+msg_router = APIRouter(prefix="/messages", tags=["messages"])
 
 
 @router.get("", response_model=list[MessageOut])
@@ -90,3 +91,71 @@ async def create_message(
         {"type": "message:new", "message_id": str(msg.id)},
     )
     return MessageCreateOut(id=msg.id)
+
+
+@msg_router.patch("/{message_id}", response_model=MessageOut)
+def update_message(
+    background: BackgroundTasks,
+    message_id: UUID,
+    payload: MessageUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    msg = db.get(Message, message_id)
+    if not msg or current_user.id not in (msg.conversation.user_a_id, msg.conversation.user_b_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found")
+    if msg.sender_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
+    if msg.deleted_at:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Message deleted")
+
+    msg.content = payload.content
+    msg.edited_at = datetime.now(UTC)  # type: ignore[assignment]
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+    assert msg.edited_at is not None
+    edited_at = cast(datetime, msg.edited_at)
+    background.add_task(
+        manager.broadcast_json,
+        msg.conversation_id,
+        {
+            "type": "message:update",
+            "id": str(msg.id),
+            "content": msg.content,
+            "edited_at": edited_at.isoformat(),
+        },
+    )
+    return msg
+
+
+@msg_router.delete("/{message_id}", response_model=MessageOut)
+def delete_message(
+    background: BackgroundTasks,
+    message_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    msg = db.get(Message, message_id)
+    if not msg or current_user.id not in (msg.conversation.user_a_id, msg.conversation.user_b_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found")
+    if msg.sender_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
+
+    if not msg.deleted_at:
+        msg.deleted_at = datetime.now(UTC)  # type: ignore[assignment]
+        db.add(msg)
+        db.commit()
+        db.refresh(msg)
+    assert msg.deleted_at is not None
+    deleted_at = cast(datetime, msg.deleted_at)
+    background.add_task(
+        manager.broadcast_json,
+        msg.conversation_id,
+        {
+            "type": "message:delete",
+            "id": str(msg.id),
+            "deleted_at": deleted_at.isoformat(),
+        },
+    )
+    return msg

@@ -1,5 +1,14 @@
 import api from "./client";
 
+export interface Attachment {
+  id: string;
+  filename: string;
+  mime: string;
+  size_bytes: number;
+  storage_key: string;
+  created_at: string;
+}
+
 export interface Message {
   id: string;
   conversation_id: string;
@@ -8,6 +17,7 @@ export interface Message {
   created_at: string;
   edited_at: string | null;
   deleted_at: string | null;
+  attachments: Attachment[];
 }
 
 export async function getMessages(conversationId: string, cursor?: string, limit = 50): Promise<Message[]> {
@@ -24,6 +34,22 @@ export async function sendMessage(conversationId: string, opts: { content?: stri
   (opts.files || []).forEach((f) => form.append("files", f));
   const res = await api.post<{ id: string }>(`/conversations/${conversationId}/messages`, form, {
     headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+}
+
+export async function updateMessage(messageId: string, content: string, token: string): Promise<Message> {
+  const res = await api.patch<Message>(
+    `/messages/${messageId}`,
+    { content },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return res.data;
+}
+
+export async function deleteMessage(messageId: string, token: string): Promise<Message> {
+  const res = await api.delete<Message>(`/messages/${messageId}`, {
+    headers: { Authorization: `Bearer ${token}` },
   });
   return res.data;
 }

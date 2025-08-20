@@ -18,6 +18,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(conversations.router)
 app.include_router(messages.router)
+app.include_router(messages.msg_router)
 app.include_router(ws.router)
 app.include_router(users.router)
 
