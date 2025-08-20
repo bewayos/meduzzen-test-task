@@ -18,14 +18,14 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.execute(
-        """
-        CREATE INDEX IF NOT EXISTS ix_messages_conv_created
-        ON messages (conversation_id, created_at DESC, id DESC);
-        """
+    op.create_index(
+        "ix_messages_conv_created",
+        "messages",
+        ["conversation_id", "created_at", "id"],
+        unique=False,
     )
 
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.execute("DROP INDEX IF EXISTS ix_messages_conv_created;")
+    op.drop_index("ix_messages_conv_created", table_name="messages")
