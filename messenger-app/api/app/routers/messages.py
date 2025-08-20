@@ -1,3 +1,4 @@
+import os
 from datetime import UTC, datetime
 from typing import Annotated, cast
 from uuid import UUID
@@ -19,11 +20,34 @@ from app.core.db import get_db
 from app.deps import get_current_user
 from app.models import Attachment, Conversation, Message, User
 from app.schemas.message import MessageCreateOut, MessageOut, MessageUpdate
-from app.services.storage import save_uploads, validate_files
+from app.services.storage import save_uploads
 from app.ws import manager
 
 router = APIRouter(prefix="/conversations/{conversation_id}/messages", tags=["messages"])
 msg_router = APIRouter(prefix="/messages", tags=["messages"])
+
+MAX_MESSAGE_LEN = 2000
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+ALLOWED_MIME = {"image/png", "image/jpeg", "application/pdf", "text/plain"}
+
+
+def validate_files(files: list[UploadFile]):
+    """Validate file size and MIME type for uploaded files."""
+    for f in files:
+        if f.content_type not in ALLOWED_MIME:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type: {f.content_type}",
+            )
+        # check file size
+        f.file.seek(0, os.SEEK_END)
+        size = f.file.tell()
+        f.file.seek(0)
+        if size > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File too large: {f.filename}",
+            )
 
 
 @router.get("", response_model=list[MessageOut])
@@ -72,6 +96,9 @@ async def create_message(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
     if not content and not files:
         raise HTTPException(status_code=400, detail="Empty message")
+
+    if content and len(content) > MAX_MESSAGE_LEN:
+        raise HTTPException(status_code=400, detail="Message too long")
 
     msg = Message(conversation_id=conversation_id, sender_id=current_user.id, content=content)
     db.add(msg)
