@@ -6,7 +6,6 @@ A production‑style **messenger MVP** showcasing a clean full‑stack setup: Fa
 >
 > * Mirrors a typical junior full‑stack stack (Python/FastAPI, React, PostgreSQL, Docker).
 > * Emphasizes readable code, small commits, and DX (one‑command setup, typed APIs, linters, pre‑commit).
-> * Designed for learning and teamwork: clear architecture, Makefile, and docs to help others run it quickly.
 
 ---
 
